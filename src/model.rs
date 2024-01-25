@@ -46,8 +46,10 @@ pub struct Game {
     pub current_y: usize,
     pub current: [i32; BLOCK_LEN],
     pub next: [i32; BLOCK_LEN],
+    pub erase: i32,
+    pub max_erase: i32,
     pub combo: i32,
-    pub erased_jewels: i32,
+    pub total_erased: i32,
     pub max_combo: i32,
     pub fall_wait: i32,
     pub spawn_wait: i32,
@@ -81,8 +83,10 @@ impl Game {
             current_x: 0,
             current_y: 0,
             next: [0; BLOCK_LEN],
+            erase: 0,
+            max_erase: 0,
             combo: -1,
-            erased_jewels: 0,
+            total_erased: 0,
             max_combo: 0,
             fall_wait: FALL_WAIT,
             spawn_wait: -1,
@@ -193,6 +197,7 @@ impl Game {
         match new_state {
             State::Controllable => {
                 assert!(self.state == State::Controllable || self.state == State::PieceFalling);
+                self.erase = 0;
                 self.combo = -1;
                 self.spawn();
                 if self.is_collide() {
@@ -202,6 +207,7 @@ impl Game {
             }
             State::Flashing => {
                 assert!(self.state == State::Controllable || self.state == State::PieceFalling);
+
                 self.combo += 1;
                 self.flashing_wait = FLASHING_WAIT;
             }
@@ -333,7 +339,11 @@ impl Game {
             }
         }
         if erased_count > 0 {
-            self.erased_jewels += erased_count;
+            self.total_erased += erased_count;
+            self.erase += erased_count;
+            if self.max_erase < self.erase {
+                self.max_erase = self.erase;
+            }
             if self.max_combo < self.combo {
                 self.max_combo = self.combo;
             }

@@ -281,7 +281,7 @@ fn render(
     render_font(
         canvas,
         font,
-        format!("JEWELS {:6}", game.erased_jewels).to_string(),
+        format!("JEWELS {:6}", game.total_erased).to_string(),
         SCREEN_WIDTH - INFO_WIDTH + 20,
         230,
         font_color,
@@ -290,12 +290,24 @@ fn render(
     render_font(
         canvas,
         font,
-        format!("MAX COMBO {:3}", game.max_combo).to_string(),
+        format!("MAX ERASE {:3}", game.max_erase).to_string(),
         SCREEN_WIDTH - INFO_WIDTH + 20,
         270,
         font_color,
         false,
     );
+
+    for i in 0..game.combo {
+        render_font(
+            canvas,
+            font,
+            format!("COMBO!").to_string(),
+            SCREEN_WIDTH - INFO_WIDTH + 20,
+            310 + 40 * i,
+            get_block_color(1 + (game.frame + i) % COLOR_COUNT),
+            false,
+        );
+    }
 
     if game.is_over {
         canvas.set_draw_color(Color::RGBA(255, 0, 0, 128));
