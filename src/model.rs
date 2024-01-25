@@ -8,6 +8,7 @@ pub const CELL_SIZE: i32 = 40;
 pub const COLOR_COUNT: i32 = 6;
 pub const BLOCK_LEN: usize = 3;
 pub const FALL_WAIT: i32 = 30;
+pub const EMPTY: i32 = 0;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Command {
@@ -56,8 +57,8 @@ impl Game {
             requested_sounds: Vec::new(),
             commands: Vec::new(),
             command_log: File::create("command.log").unwrap(),
-            field: [[0; FIELD_W]; FIELD_H],
-            current: [0; BLOCK_LEN],
+            field: [[EMPTY; FIELD_W]; FIELD_H],
+            current: [1; BLOCK_LEN],
             current_x: 0,
             current_y: 0,
             next: [0; BLOCK_LEN],
@@ -107,10 +108,16 @@ impl Game {
         if command == Command::Left {
             if self.current_x >= 1 {
                 self.current_x -= 1;
+                if self.is_collide() {
+                    self.current_x += 1;
+                }
             }
         } else if command == Command::Right {
             if self.current_x + 1 < FIELD_W {
                 self.current_x += 1;
+                if self.is_collide() {
+                    self.current_x -= 1;
+                }
             }
         } else if command == Command::Down {
             self.fall_frame = self.frame;
@@ -121,15 +128,25 @@ impl Game {
 
     pub fn fall(&mut self) {
         if self.frame == self.fall_frame {
-            if self.current_y + 2 == FIELD_H - 1 {
-                // 固定
+            self.current_y += 1;
+            if self.is_collide() {
+                self.current_y -= 1;
                 self.settle();
                 self.spawn();
-            } else {
-                self.current_y += 1;
             }
             self.fall_frame = self.frame + FALL_WAIT;
         }
+    }
+
+    pub fn is_collide(&self) -> bool {
+        let bottom_y = self.current_y + (BLOCK_LEN - 1);
+        if bottom_y == FIELD_H {
+            return true;
+        }
+        if self.field[bottom_y][self.current_x] != EMPTY {
+            return true;
+        }
+        return false;
     }
 
     pub fn settle(&mut self) {
