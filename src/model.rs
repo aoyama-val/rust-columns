@@ -6,8 +6,8 @@ pub const FIELD_W: usize = 6;
 pub const FIELD_H: usize = 13;
 pub const CELL_SIZE: i32 = 40;
 pub const COLOR_COUNT: i32 = 6;
-pub const BLOCK_LEN: usize = 3;
-pub const ERASE_LEN: usize = 3;
+pub const BLOCK_LEN: usize = 3; // 1ブロックのピース数
+pub const ERASE_LEN: usize = 3; // この個数つながったら消す
 pub const FALL_WAIT: i32 = 30;
 pub const SPAWN_WAIT: i32 = 15;
 pub const FLASHING_WAIT: i32 = 15;
@@ -278,7 +278,7 @@ impl Game {
                     for dir in dirs {
                         let mut is_same = true;
                         println!("dir = {:?}", dir);
-                        for i in 1..BLOCK_LEN {
+                        for i in 1..ERASE_LEN {
                             let x_ = x + dir.0 * i;
                             let y_ = y + dir.1 * i;
                             println!("{} {}", x_, y_);
@@ -290,7 +290,7 @@ impl Game {
                             }
                         }
                         if is_same {
-                            for i in 0..BLOCK_LEN {
+                            for i in 0..ERASE_LEN {
                                 let x_ = x + dir.0 * i;
                                 let y_ = y + dir.1 * i;
                                 self.check_erase_result[y_][x_] = true;
