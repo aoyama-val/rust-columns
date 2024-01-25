@@ -252,7 +252,7 @@ fn render(
     ))?;
 
     // render current block
-    if game.controllable {
+    if game.state == State::Controllable {
         for i in 0..BLOCK_LEN {
             let color = get_block_color(game.current[i]);
             canvas.set_draw_color(color);

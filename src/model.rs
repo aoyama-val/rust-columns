@@ -9,7 +9,7 @@ pub const COLOR_COUNT: i32 = 6;
 pub const BLOCK_LEN: usize = 3; // 1ブロックのピース数
 pub const ERASE_LEN: usize = 3; // この個数つながったら消す
 pub const FALL_WAIT: i32 = 30;
-pub const SPAWN_WAIT: i32 = 15;
+pub const SPAWN_WAIT: i32 = 0;
 pub const FLASHING_WAIT: i32 = 15;
 pub const PIECE_FALL_WAIT: i32 = 4;
 pub const EMPTY: i32 = 0;
@@ -23,6 +23,13 @@ pub enum Command {
     Down,
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum State {
+    Controllable,
+    Flashing,
+    PieceFalling,
+}
+
 #[derive(Debug)]
 pub struct Game {
     pub rng: StdRng,
@@ -32,6 +39,7 @@ pub struct Game {
     pub requested_sounds: Vec<&'static str>,
     pub commands: Vec<Command>, // リプレイデータから読み込んだコマンド
     pub command_log: File,      // コマンドログ
+    pub state: State,
     pub field: [[i32; FIELD_W]; FIELD_H],
     pub check_erase_result: [[bool; FIELD_W]; FIELD_H],
     pub current_x: usize,
@@ -44,7 +52,6 @@ pub struct Game {
     pub spawn_wait: i32,
     pub flashing_wait: i32,
     pub piece_fall_wait: i32,
-    pub controllable: bool,
 }
 
 impl Game {
@@ -66,6 +73,7 @@ impl Game {
             requested_sounds: Vec::new(),
             commands: Vec::new(),
             command_log: File::create("command.log").unwrap(),
+            state: State::Controllable,
             field: [[EMPTY; FIELD_W]; FIELD_H],
             check_erase_result: [[false; FIELD_W]; FIELD_H],
             current: [1; BLOCK_LEN],
@@ -78,7 +86,6 @@ impl Game {
             spawn_wait: -1,
             flashing_wait: -1,
             piece_fall_wait: -1,
-            controllable: true,
         };
 
         for i in 0..BLOCK_LEN {
@@ -130,7 +137,21 @@ impl Game {
             return;
         }
 
-        if self.controllable {
+        if self.state == State::Controllable {
+            if self.spawn_wait > 0 {
+                self.spawn_wait -= 1;
+            }
+            if self.spawn_wait == 0 {
+                self.spawn();
+                if self.is_collide() {
+                    self.is_over = true;
+                    self.requested_sounds.push("crash.wav");
+                }
+                self.spawn_wait = -1;
+            }
+
+            self.fall();
+
             match command {
                 Command::Left => {
                     self.move_block(-1);
@@ -152,43 +173,43 @@ impl Game {
                 }
                 Command::None => {}
             }
-
-            self.fall();
-        } else {
-            if self.spawn_wait > 0 {
-                self.spawn_wait -= 1;
-            }
-            if self.spawn_wait == 0 {
-                self.spawn();
-                if self.is_collide() {
-                    self.is_over = true;
-                    self.requested_sounds.push("crash.wav");
-                }
-                self.spawn_wait = -1;
-                // 足場がなくなったピースを落とす（アニメーション）
-                // そろったピースを消す（アニメーション）
-                self.controllable = true;
-            }
-
+        } else if self.state == State::Flashing {
             if self.flashing_wait > 0 {
                 self.flashing_wait -= 1;
             }
             if self.flashing_wait == 0 {
-                self.flashing_wait = -1;
-                self.piece_fall_wait = PIECE_FALL_WAIT;
                 self.actually_erase();
+                self.set_state(State::PieceFalling);
             }
-
+        } else if self.state == State::PieceFalling {
             if self.piece_fall_wait > 0 {
                 self.piece_fall_wait -= 1;
             }
             if self.piece_fall_wait == 0 {
-                self.piece_fall_wait = -1;
-                self.spawn_wait = SPAWN_WAIT;
                 self.piece_fall();
-                self.check_erase();
+                if self.check_erase() {
+                    self.set_state(State::Flashing);
+                } else {
+                    self.set_state(State::Controllable);
+                }
             }
         }
+    }
+
+    pub fn set_state(&mut self, new_state: State) {
+        match new_state {
+            State::Controllable => {
+                self.spawn_wait = SPAWN_WAIT;
+            }
+            State::Flashing => {
+                self.flashing_wait = FLASHING_WAIT;
+            }
+            State::PieceFalling => {
+                self.piece_fall_wait = PIECE_FALL_WAIT;
+            }
+        }
+        println!("state: {:?} -> {:?}", self.state, new_state);
+        self.state = new_state;
     }
 
     pub fn piece_fall(&mut self) {
@@ -221,16 +242,11 @@ impl Game {
     }
 
     pub fn rotate(&mut self) {
-        println!("{:?}", self.current);
         let tmp = self.current[BLOCK_LEN - 1];
-        println!("tmp = {}", tmp);
         for i in (1..=(BLOCK_LEN - 1)).rev() {
             self.current[i] = self.current[i - 1];
         }
         self.current[0] = tmp;
-        println!("{:?}", self.current);
-        // [2, 6, 3]
-        // [3, 2, 2]
     }
 
     pub fn fall(&mut self) {
@@ -242,8 +258,11 @@ impl Game {
             if self.is_collide() {
                 self.current_y -= 1;
                 self.settle();
-                self.controllable = false;
-                self.check_erase();
+                if self.check_erase() {
+                    self.set_state(State::Flashing);
+                } else {
+                    self.set_state(State::Controllable);
+                }
             }
             self.fall_wait = FALL_WAIT;
         }
@@ -267,7 +286,7 @@ impl Game {
         self.requested_sounds.push("hit.wav");
     }
 
-    pub fn check_erase(&mut self) {
+    pub fn check_erase(&mut self) -> bool {
         self.check_erase_result = Default::default();
         let mut exist = false;
 
@@ -277,11 +296,9 @@ impl Game {
                     let dirs = [(1, 0), (1, 1), (0, 1)];
                     for dir in dirs {
                         let mut is_same = true;
-                        println!("dir = {:?}", dir);
                         for i in 1..ERASE_LEN {
                             let x_ = x + dir.0 * i;
                             let y_ = y + dir.1 * i;
-                            println!("{} {}", x_, y_);
                             if !self.is_piece_exist(x_, y_)
                                 || self.field[y_][x_] != self.field[y][x]
                             {
@@ -294,7 +311,6 @@ impl Game {
                                 let x_ = x + dir.0 * i;
                                 let y_ = y + dir.1 * i;
                                 self.check_erase_result[y_][x_] = true;
-                                println!("set true: {} {}", x_, y_);
                                 exist = true;
                             }
                         }
@@ -302,10 +318,7 @@ impl Game {
                 }
             }
         }
-        if exist {
-            self.flashing_wait = FLASHING_WAIT;
-            self.spawn_wait = -1;
-        }
+        return exist;
     }
 
     pub fn actually_erase(&mut self) {
@@ -328,6 +341,7 @@ impl Game {
     }
 
     pub fn spawn(&mut self) {
+        println!("Spawn!");
         self.current = self.next;
         self.current_x = FIELD_W / 2;
         self.current_y = 0;
