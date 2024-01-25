@@ -36,7 +36,7 @@ pub struct Game {
     pub next: [i32; BLOCK_LEN],
     pub erased_jewels: i32,
     pub max_combo: i32,
-    pub fall_frame: i32,
+    pub fall_wait: i32,
     pub spawn_wait: i32,
     pub controllable: bool,
 }
@@ -67,7 +67,7 @@ impl Game {
             next: [0; BLOCK_LEN],
             erased_jewels: 0,
             max_combo: 0,
-            fall_frame: FALL_WAIT,
+            fall_wait: FALL_WAIT,
             spawn_wait: -1,
             controllable: true,
         };
@@ -119,7 +119,7 @@ impl Game {
                     }
                 }
                 Command::Down => {
-                    self.fall_frame = self.frame;
+                    self.fall_wait = 0;
                 }
                 Command::Rotate => {
                     self.rotate();
@@ -168,7 +168,10 @@ impl Game {
     }
 
     pub fn fall(&mut self) {
-        if self.frame == self.fall_frame {
+        if self.fall_wait > 0 {
+            self.fall_wait -= 1;
+        }
+        if self.fall_wait == 0 {
             self.current_y += 1;
             if self.is_collide() {
                 self.current_y -= 1;
@@ -176,7 +179,7 @@ impl Game {
                 self.spawn_wait = SPAWN_WAIT;
                 self.controllable = false;
             }
-            self.fall_frame = self.frame + FALL_WAIT;
+            self.fall_wait = FALL_WAIT;
         }
     }
 
