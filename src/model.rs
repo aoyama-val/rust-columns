@@ -9,7 +9,6 @@ pub const COLOR_COUNT: i32 = 6;
 pub const BLOCK_LEN: usize = 3; // 1ブロックのピース数
 pub const ERASE_LEN: usize = 3; // この個数つながったら消す
 pub const FALL_WAIT: i32 = 30;
-pub const SPAWN_WAIT: i32 = 0;
 pub const FLASHING_WAIT: i32 = 15;
 pub const PIECE_FALL_WAIT: i32 = 4;
 pub const EMPTY: i32 = 0;
@@ -25,9 +24,9 @@ pub enum Command {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum State {
-    Controllable,
-    Flashing,
-    PieceFalling,
+    Controllable, // 操作可能な状態
+    Flashing,     // そろったピースが点滅している状態
+    PieceFalling, // 足場がなくなったピースが落下している状態
 }
 
 #[derive(Debug)]
@@ -138,18 +137,6 @@ impl Game {
         }
 
         if self.state == State::Controllable {
-            if self.spawn_wait > 0 {
-                self.spawn_wait -= 1;
-            }
-            if self.spawn_wait == 0 {
-                self.spawn();
-                if self.is_collide() {
-                    self.is_over = true;
-                    self.requested_sounds.push("crash.wav");
-                }
-                self.spawn_wait = -1;
-            }
-
             self.fall();
 
             match command {
@@ -197,18 +184,25 @@ impl Game {
     }
 
     pub fn set_state(&mut self, new_state: State) {
+        println!("state: {:?} -> {:?}", self.state, new_state);
         match new_state {
             State::Controllable => {
-                self.spawn_wait = SPAWN_WAIT;
+                assert!(self.state == State::Controllable || self.state == State::PieceFalling);
+                self.spawn();
+                if self.is_collide() {
+                    self.is_over = true;
+                    self.requested_sounds.push("crash.wav");
+                }
             }
             State::Flashing => {
+                assert!(self.state == State::Controllable || self.state == State::PieceFalling);
                 self.flashing_wait = FLASHING_WAIT;
             }
             State::PieceFalling => {
+                assert!(self.state == State::Flashing);
                 self.piece_fall_wait = PIECE_FALL_WAIT;
             }
         }
-        println!("state: {:?} -> {:?}", self.state, new_state);
         self.state = new_state;
     }
 
