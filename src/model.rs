@@ -38,22 +38,23 @@ pub enum Command {
     Down,
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
 pub enum State {
+    #[default]
     Controllable, // 操作可能な状態
     Flashing,     // そろったピースが点滅している状態
     PieceFalling, // 足場がなくなったピースが落下している状態
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Game {
-    pub rng: StdRng,
+    pub rng: Option<StdRng>,
     pub is_over: bool,
     pub is_debug: bool,
     pub frame: i32,
     pub requested_sounds: Vec<&'static str>,
-    pub commands: Vec<Command>, // リプレイデータから読み込んだコマンド
-    pub command_log: File,      // コマンドログ
+    pub commands: Vec<Command>,    // リプレイデータから読み込んだコマンド
+    pub command_log: Option<File>, // コマンドログ
     pub state: State,
     pub field: [[i32; FIELD_W]; FIELD_H],
     pub check_erase_result: [[bool; FIELD_W]; FIELD_H],
@@ -84,35 +85,13 @@ impl Game {
         // let rng = StdRng::seed_from_u64(0);
 
         let mut game = Game {
-            rng: rng,
-            is_over: false,
-            is_debug: false,
+            rng: Some(rng),
+            command_log: Some(File::create("command.log").unwrap()),
             frame: -1,
-            requested_sounds: Vec::new(),
-            commands: Vec::new(),
-            command_log: File::create("command.log").unwrap(),
-            state: State::Controllable,
-            field: [[EMPTY; FIELD_W]; FIELD_H],
-            check_erase_result: [[false; FIELD_W]; FIELD_H],
-            current: [1; BLOCK_LEN],
-            current_x: 0,
-            current_y: 0,
-            next: [0; BLOCK_LEN],
-            erased_one_time: 0,
-            max_erased_at_one_time: 0,
-            combo: -1,
-            total_erased: 0,
-            max_combo: 0,
-            fall_wait: FALL_WAIT,
-            spawn_wait: -1,
-            flashing_wait: -1,
-            piece_fall_wait: -1,
+            ..Default::default()
         };
 
-        for i in 0..BLOCK_LEN {
-            game.next[i] = game.rng.gen_range(1..=COLOR_COUNT)
-        }
-        game.spawn();
+        game.set_state(State::Controllable);
 
         game.current = [5, 5, 1];
         game.field = [
@@ -143,9 +122,11 @@ impl Game {
 
     pub fn write_command_log(&mut self, command: Command) {
         self.command_log
+            .as_ref()
+            .unwrap()
             .write_all(format!("{:?}\n", command).as_bytes())
             .ok();
-        self.command_log.flush().ok();
+        self.command_log.as_ref().unwrap().flush().ok();
     }
 
     pub fn update(&mut self, mut command: Command) {
@@ -367,7 +348,7 @@ impl Game {
         self.current_x = FIELD_W / 2;
         self.current_y = 0;
         for i in 0..BLOCK_LEN {
-            self.next[i] = self.rng.gen_range(1..=COLOR_COUNT)
+            self.next[i] = self.rng.as_mut().unwrap().gen_range(1..=COLOR_COUNT)
         }
     }
 }
