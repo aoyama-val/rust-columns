@@ -279,7 +279,7 @@ impl Game {
 
     pub fn check_erase(&mut self) -> bool {
         self.check_erase_result = Default::default();
-        let mut exist = false;
+        let mut checked = false;
 
         for y in 0..FIELD_H {
             for x in 0..FIELD_W {
@@ -302,14 +302,14 @@ impl Game {
                                 let x_ = x as i32 + dir.0 * i as i32;
                                 let y_ = y as i32 + dir.1 * i as i32;
                                 self.check_erase_result[y_ as usize][x_ as usize] = true;
-                                exist = true;
+                                checked = true;
                             }
                         }
                     }
                 }
             }
         }
-        return exist;
+        return checked;
     }
 
     pub fn actually_erase(&mut self) {
