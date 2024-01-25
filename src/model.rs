@@ -14,6 +14,21 @@ pub const FLASHING_WAIT: i32 = 15;
 pub const PIECE_FALL_WAIT: i32 = 4;
 pub const EMPTY: i32 = 0;
 
+// $varの値が
+//   > 0 : ウェイト中
+//  == 0 : ブロック実行
+//   < 0 : ブロック実行せず、ウェイトも減らさない
+macro_rules! wait {
+    ($var:expr, $block:block) => {
+        if $var > 0 {
+            $var -= 1;
+        }
+        if $var == 0 {
+            $block
+        }
+    };
+}
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Command {
     None,
@@ -147,12 +162,9 @@ impl Game {
 
         match self.state {
             State::Controllable => {
-                if self.fall_wait > 0 {
-                    self.fall_wait -= 1;
-                }
-                if self.fall_wait == 0 {
+                wait!(self.fall_wait, {
                     self.fall();
-                }
+                });
 
                 match command {
                     Command::Left => {
@@ -171,26 +183,20 @@ impl Game {
                 }
             }
             State::Flashing => {
-                if self.flashing_wait > 0 {
-                    self.flashing_wait -= 1;
-                }
-                if self.flashing_wait == 0 {
+                wait!(self.flashing_wait, {
                     self.actually_erase();
                     self.set_state(State::PieceFalling);
-                }
+                });
             }
             State::PieceFalling => {
-                if self.piece_fall_wait > 0 {
-                    self.piece_fall_wait -= 1;
-                }
-                if self.piece_fall_wait == 0 {
+                wait!(self.piece_fall_wait, {
                     self.piece_fall();
                     if self.check_erase() {
                         self.set_state(State::Flashing);
                     } else {
                         self.set_state(State::Controllable);
                     }
-                }
+                });
             }
         }
     }
