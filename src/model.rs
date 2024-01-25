@@ -147,7 +147,12 @@ impl Game {
 
         match self.state {
             State::Controllable => {
-                self.fall();
+                if self.fall_wait > 0 {
+                    self.fall_wait -= 1;
+                }
+                if self.fall_wait == 0 {
+                    self.fall();
+                }
 
                 match command {
                     Command::Left => {
@@ -197,7 +202,7 @@ impl Game {
                 self.erased_one_time = 0;
                 self.combo = -1;
                 self.spawn();
-                if self.is_collide() {
+                if self.is_intersect() {
                     self.is_over = true;
                     self.requested_sounds.push("crash.wav");
                 }
@@ -240,7 +245,7 @@ impl Game {
             return;
         }
         self.current_x = (self.current_x as i32 + dir) as usize;
-        if self.is_collide() {
+        if self.is_intersect() {
             self.current_x = (self.current_x as i32 - dir) as usize;
         }
     }
@@ -254,25 +259,20 @@ impl Game {
     }
 
     pub fn fall(&mut self) {
-        if self.fall_wait > 0 {
-            self.fall_wait -= 1;
-        }
-        if self.fall_wait == 0 {
-            self.current_y += 1;
-            if self.is_collide() {
-                self.current_y -= 1;
-                self.settle();
-                if self.check_erase() {
-                    self.set_state(State::Flashing);
-                } else {
-                    self.set_state(State::Controllable);
-                }
+        self.current_y += 1;
+        if self.is_intersect() {
+            self.current_y -= 1;
+            self.settle();
+            if self.check_erase() {
+                self.set_state(State::Flashing);
+            } else {
+                self.set_state(State::Controllable);
             }
-            self.fall_wait = FALL_WAIT;
         }
+        self.fall_wait = FALL_WAIT;
     }
 
-    pub fn is_collide(&self) -> bool {
+    pub fn is_intersect(&self) -> bool {
         let bottom_y = self.current_y + (BLOCK_LEN - 1);
         if bottom_y == FIELD_H {
             return true;
