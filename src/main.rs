@@ -222,7 +222,7 @@ fn render(
         for x in 0..FIELD_W {
             if game.field[y][x] != EMPTY {
                 let color;
-                if game.flashing_wait != -1 && game.check_erase_result[y][x] {
+                if game.state == State::Flashing && game.check_erase_result[y][x] {
                     if game.flashing_wait % 2 == 0 {
                         color = Color::RGB(255, 255, 255);
                     } else {
@@ -231,10 +231,15 @@ fn render(
                 } else {
                     color = get_block_color(game.field[y][x]);
                 }
+                let offset_y = if game.state == State::PieceFalling && game.piece_falling[y][x] {
+                    game.piece_fall_offset
+                } else {
+                    0
+                };
                 canvas.set_draw_color(color);
                 canvas.fill_rect(Rect::new(
                     (x as i32) * (CELL_SIZE as i32),
-                    (y as i32 - INVISIBLE_ROW_COUNT as i32) * (CELL_SIZE as i32),
+                    (y as i32 - INVISIBLE_ROW_COUNT as i32) * (CELL_SIZE as i32) + offset_y,
                     CELL_SIZE as u32,
                     CELL_SIZE as u32,
                 ))?;

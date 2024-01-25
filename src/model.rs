@@ -11,7 +11,7 @@ pub const BLOCK_LEN: usize = 3; // 1ブロックのピース数
 pub const ERASE_LEN: usize = 3; // この個数つながったら消す
 pub const FALL_WAIT: i32 = 30;
 pub const FLASHING_WAIT: i32 = 15;
-pub const PIECE_FALL_WAIT: i32 = 4;
+pub const PIECE_FALL_SPEED: i32 = 15;
 pub const EMPTY: i32 = 0;
 
 // $varの値が
@@ -58,6 +58,7 @@ pub struct Game {
     pub state: State,
     pub field: [[i32; FIELD_W]; FIELD_H],
     pub check_erase_result: [[bool; FIELD_W]; FIELD_H],
+    pub piece_falling: [[bool; FIELD_W]; FIELD_H],
     pub current_x: usize,
     pub current_y: usize, // 3個つらなっている一番上のピースの座標
     pub current: [i32; BLOCK_LEN],
@@ -72,6 +73,7 @@ pub struct Game {
     pub spawn_wait: i32,
     pub flashing_wait: i32,
     pub piece_fall_wait: i32,
+    pub piece_fall_offset: i32,
 }
 
 impl Game {
@@ -173,14 +175,14 @@ impl Game {
                 });
             }
             State::PieceFalling => {
-                wait!(self.piece_fall_wait, {
-                    self.piece_fall();
+                if self.piece_fall() {
+                } else {
                     if self.check_erase() {
                         self.set_state(State::Flashing);
                     } else {
                         self.set_state(State::Controllable);
                     }
-                });
+                }
             }
         }
     }
@@ -205,23 +207,49 @@ impl Game {
             }
             State::PieceFalling => {
                 assert!(self.state == State::Flashing);
-                self.piece_fall_wait = PIECE_FALL_WAIT;
+                self.piece_fall_offset = 0;
             }
         }
         self.state = new_state;
     }
 
-    pub fn piece_fall(&mut self) {
-        for y in (0..FIELD_H).rev() {
+    pub fn check_piece_fall(&mut self) -> bool {
+        let mut checked = false;
+        for y in (0..=FIELD_H - 2).rev() {
             for x in 0..FIELD_W {
-                if self.field[y][x] == EMPTY {
-                    for y2 in (0..y).rev() {
-                        if self.field[y2][x] != EMPTY {
-                            self.field[y][x] = self.field[y2][x];
-                            self.field[y2][x] = EMPTY;
-                            break;
-                        }
-                    }
+                // 1マス下が空、または落下中ならそのマスも落下中とする
+                if self.field[y][x] != EMPTY
+                    && (self.field[y + 1][x] == EMPTY || self.piece_falling[y + 1][x])
+                {
+                    self.piece_falling[y][x] = true;
+                    checked = true;
+                } else {
+                    self.piece_falling[y][x] = false;
+                }
+            }
+        }
+        return checked;
+    }
+
+    pub fn piece_fall(&mut self) -> bool {
+        let mut should_continue = true;
+        self.piece_fall_offset += PIECE_FALL_SPEED;
+        if self.piece_fall_offset >= CELL_SIZE {
+            self.piece_fall_offset = 0;
+            self.actually_piece_fall();
+            if !self.check_piece_fall() {
+                should_continue = false;
+            }
+        }
+        return should_continue;
+    }
+
+    pub fn actually_piece_fall(&mut self) {
+        for y in (0..=FIELD_H - 2).rev() {
+            for x in 0..FIELD_W {
+                if self.piece_falling[y][x] {
+                    self.field[y + 1][x] = self.field[y][x];
+                    self.field[y][x] = EMPTY;
                 }
             }
         }
