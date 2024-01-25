@@ -222,11 +222,11 @@ fn render(
         for x in 0..FIELD_W {
             if game.field[y][x] != EMPTY {
                 let color;
-                if game.check_erase_result[y][x] {
+                if game.flashing_wait != -1 && game.check_erase_result[y][x] {
                     if game.flashing_wait % 2 == 0 {
                         color = Color::RGB(255, 255, 255);
                     } else {
-                        color = Color::RGB(128, 128, 128);
+                        color = get_block_color(game.field[y][x]);
                     }
                 } else {
                     color = get_block_color(game.field[y][x]);

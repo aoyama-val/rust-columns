@@ -9,8 +9,9 @@ pub const COLOR_COUNT: i32 = 6;
 pub const BLOCK_LEN: usize = 3;
 pub const ERASE_LEN: usize = 3;
 pub const FALL_WAIT: i32 = 30;
-pub const SPAWN_WAIT: i32 = 30;
+pub const SPAWN_WAIT: i32 = 15;
 pub const FLASHING_WAIT: i32 = 15;
+pub const PIECE_FALL_WAIT: i32 = 4;
 pub const EMPTY: i32 = 0;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -42,6 +43,7 @@ pub struct Game {
     pub fall_wait: i32,
     pub spawn_wait: i32,
     pub flashing_wait: i32,
+    pub piece_fall_wait: i32,
     pub controllable: bool,
 }
 
@@ -75,6 +77,7 @@ impl Game {
             fall_wait: FALL_WAIT,
             spawn_wait: -1,
             flashing_wait: -1,
+            piece_fall_wait: -1,
             controllable: true,
         };
 
@@ -83,7 +86,7 @@ impl Game {
         }
         game.spawn();
 
-        game.current = [2, 1, 1];
+        game.current = [2, 1, 2];
         game.field = [
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
@@ -94,9 +97,9 @@ impl Game {
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 2, 0, 0],
+            [0, 0, 0, 2, 0, 0],
+            [0, 0, 0, 1, 0, 0],
             [0, 0, 1, 1, 0, 1],
         ];
 
@@ -172,8 +175,34 @@ impl Game {
             }
             if self.flashing_wait == 0 {
                 self.flashing_wait = -1;
-                self.spawn_wait = SPAWN_WAIT;
+                self.piece_fall_wait = PIECE_FALL_WAIT;
                 self.actually_erase();
+            }
+
+            if self.piece_fall_wait > 0 {
+                self.piece_fall_wait -= 1;
+            }
+            if self.piece_fall_wait == 0 {
+                self.piece_fall_wait = -1;
+                self.spawn_wait = SPAWN_WAIT;
+                self.piece_fall();
+                self.check_erase();
+            }
+        }
+    }
+
+    pub fn piece_fall(&mut self) {
+        for y in (0..FIELD_H).rev() {
+            for x in 0..FIELD_W {
+                if self.field[y][x] == EMPTY {
+                    for y2 in (0..y).rev() {
+                        if self.field[y2][x] != EMPTY {
+                            self.field[y][x] = self.field[y2][x];
+                            self.field[y2][x] = EMPTY;
+                            break;
+                        }
+                    }
+                }
             }
         }
     }
@@ -240,6 +269,7 @@ impl Game {
 
     pub fn check_erase(&mut self) {
         self.check_erase_result = Default::default();
+        let mut exist = false;
 
         for y in 0..FIELD_H {
             for x in 0..FIELD_W {
@@ -265,22 +295,31 @@ impl Game {
                                 let y_ = y + dir.1 * i;
                                 self.check_erase_result[y_][x_] = true;
                                 println!("set true: {} {}", x_, y_);
+                                exist = true;
                             }
                         }
                     }
                 }
             }
         }
-        self.flashing_wait = FLASHING_WAIT;
+        if exist {
+            self.flashing_wait = FLASHING_WAIT;
+            self.spawn_wait = -1;
+        }
     }
 
     pub fn actually_erase(&mut self) {
+        let mut erased = false;
         for y in 0..FIELD_H {
             for x in 0..FIELD_W {
                 if self.check_erase_result[y][x] {
                     self.field[y][x] = EMPTY;
+                    erased = true;
                 }
             }
+        }
+        if erased {
+            self.requested_sounds.push("erase.wav");
         }
     }
 
