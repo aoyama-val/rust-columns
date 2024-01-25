@@ -83,6 +83,23 @@ impl Game {
         }
         game.spawn();
 
+        game.current = [2, 1, 1];
+        game.field = [
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 1, 1, 0, 1],
+        ];
+
         game
     }
 
@@ -156,6 +173,7 @@ impl Game {
             if self.flashing_wait == 0 {
                 self.flashing_wait = -1;
                 self.spawn_wait = SPAWN_WAIT;
+                self.actually_erase();
             }
         }
     }
@@ -254,6 +272,16 @@ impl Game {
             }
         }
         self.flashing_wait = FLASHING_WAIT;
+    }
+
+    pub fn actually_erase(&mut self) {
+        for y in 0..FIELD_H {
+            for x in 0..FIELD_W {
+                if self.check_erase_result[y][x] {
+                    self.field[y][x] = EMPTY;
+                }
+            }
+        }
     }
 
     pub fn is_piece_exist(&self, x: usize, y: usize) -> bool {
