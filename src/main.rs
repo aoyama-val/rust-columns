@@ -14,7 +14,7 @@ use crate::model::*;
 
 pub const WINDOW_TITLE: &str = "rust-columns";
 pub const SCREEN_WIDTH: i32 = FIELD_W as i32 * CELL_SIZE + INFO_WIDTH;
-pub const SCREEN_HEIGHT: i32 = FIELD_H as i32 * CELL_SIZE;
+pub const SCREEN_HEIGHT: i32 = (FIELD_H - INVISIBLE_ROW_COUNT) as i32 * CELL_SIZE;
 pub const INFO_WIDTH: i32 = 190;
 
 struct Image<'a> {
@@ -234,7 +234,7 @@ fn render(
                 canvas.set_draw_color(color);
                 canvas.fill_rect(Rect::new(
                     (x as i32) * (CELL_SIZE as i32),
-                    (y as i32) * (CELL_SIZE as i32),
+                    (y as i32 - INVISIBLE_ROW_COUNT as i32) * (CELL_SIZE as i32),
                     CELL_SIZE as u32,
                     CELL_SIZE as u32,
                 ))?;

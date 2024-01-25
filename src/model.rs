@@ -290,14 +290,14 @@ impl Game {
         for y in 0..FIELD_H {
             for x in 0..FIELD_W {
                 if self.field[y][x] != EMPTY {
-                    let dirs = [(1, 0), (1, 1), (0, 1)];
+                    let dirs: [(i32, i32); 4] = [(1, 0), (1, 1), (0, 1), (1, -1)];
                     for dir in dirs {
                         let mut is_same = true;
                         for i in 1..ERASE_LEN {
-                            let x_ = x + dir.0 * i;
-                            let y_ = y + dir.1 * i;
+                            let x_ = x as i32 + dir.0 * i as i32;
+                            let y_ = y as i32 + dir.1 * i as i32;
                             if !self.is_piece_exist(x_, y_)
-                                || self.field[y_][x_] != self.field[y][x]
+                                || self.field[y_ as usize][x_ as usize] != self.field[y][x]
                             {
                                 is_same = false;
                                 break;
@@ -305,9 +305,9 @@ impl Game {
                         }
                         if is_same {
                             for i in 0..ERASE_LEN {
-                                let x_ = x + dir.0 * i;
-                                let y_ = y + dir.1 * i;
-                                self.check_erase_result[y_][x_] = true;
+                                let x_ = x as i32 + dir.0 * i as i32;
+                                let y_ = y as i32 + dir.1 * i as i32;
+                                self.check_erase_result[y_ as usize][x_ as usize] = true;
                                 exist = true;
                             }
                         }
@@ -333,8 +333,12 @@ impl Game {
         }
     }
 
-    pub fn is_piece_exist(&self, x: usize, y: usize) -> bool {
-        x < FIELD_W && y < FIELD_H && self.field[y][x] != EMPTY
+    pub fn is_piece_exist(&self, x: i32, y: i32) -> bool {
+        0 <= x
+            && x < FIELD_W as i32
+            && 0 <= y
+            && y < FIELD_H as i32
+            && self.field[y as usize][x as usize] != EMPTY
     }
 
     pub fn spawn(&mut self) {
@@ -525,6 +529,50 @@ mod tests {
                 [false, false, false,  true, false, false],
                 [false, false, false, false,  true, false],
                 [false, false,  true,  true,  true,  true],
+            ]
+        );
+    }
+
+    #[test]
+    fn test_check_erase5() {
+        let mut game = Game::new();
+
+        game.field = [
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 0],
+            [0, 0, 0, 1, 0, 0],
+            [0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+        ];
+        game.check_erase();
+        assert_eq!(
+            game.check_erase_result,
+            [
+                [false, false, false, false, false, false],
+                [false, false, false, false, false, false],
+                [false, false, false, false, false, false],
+                [false, false, false, false, false, false],
+                [false, false, false, false, false, false],
+                [false, false, false, false, false, false],
+                [false, false, false, false, false, false],
+                [false, false, false, false, false, false],
+                [false, false, false, false, false, false],
+                [false, false, false, false,  true, false],
+                [false, false, false,  true, false, false],
+                [false, false,  true, false, false, false],
+                [false, false, false, false, false, false],
+                [false, false, false, false, false, false],
+                [false, false, false, false, false, false],
             ]
         );
     }
