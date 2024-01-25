@@ -7,6 +7,7 @@ pub const FIELD_H: usize = 13;
 pub const CELL_SIZE: i32 = 40;
 pub const COLOR_COUNT: i32 = 6;
 pub const BLOCK_LEN: usize = 3;
+pub const FALL_WAIT: i32 = 30;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Command {
@@ -33,6 +34,7 @@ pub struct Game {
     pub next: [i32; BLOCK_LEN],
     pub erased_jewels: i32,
     pub max_combo: i32,
+    pub fall_frame: i32,
 }
 
 impl Game {
@@ -61,15 +63,13 @@ impl Game {
             next: [0; BLOCK_LEN],
             erased_jewels: 0,
             max_combo: 0,
+            fall_frame: FALL_WAIT,
         };
-
-        for i in 0..BLOCK_LEN {
-            game.current[i] = game.rng.gen_range(1..=COLOR_COUNT)
-        }
 
         for i in 0..BLOCK_LEN {
             game.next[i] = game.rng.gen_range(1..=COLOR_COUNT)
         }
+        game.spawn();
 
         // for y in 0..FIELD_H {
         //     for x in 0..FIELD_W {
@@ -102,6 +102,49 @@ impl Game {
 
         if self.is_over {
             return;
+        }
+
+        if command == Command::Left {
+            if self.current_x >= 1 {
+                self.current_x -= 1;
+            }
+        } else if command == Command::Right {
+            if self.current_x + 1 < FIELD_W {
+                self.current_x += 1;
+            }
+        } else if command == Command::Down {
+            self.fall_frame = self.frame;
+        }
+
+        self.fall();
+    }
+
+    pub fn fall(&mut self) {
+        if self.frame == self.fall_frame {
+            if self.current_y + 2 == FIELD_H - 1 {
+                // 固定
+                self.settle();
+                self.spawn();
+            } else {
+                self.current_y += 1;
+            }
+            self.fall_frame = self.frame + FALL_WAIT;
+        }
+    }
+
+    pub fn settle(&mut self) {
+        for i in 0..BLOCK_LEN {
+            self.field[self.current_y + i][self.current_x] = self.current[i];
+        }
+        self.requested_sounds.push("hit.wav");
+    }
+
+    pub fn spawn(&mut self) {
+        self.current = self.next;
+        self.current_x = FIELD_W / 2;
+        self.current_y = 0;
+        for i in 0..BLOCK_LEN {
+            self.next[i] = self.rng.gen_range(1..=COLOR_COUNT)
         }
     }
 }
