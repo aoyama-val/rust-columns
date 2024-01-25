@@ -195,10 +195,7 @@ impl Game {
                 self.erased_one_time = 0;
                 self.combo = -1;
                 self.spawn();
-                if self.is_intersect() {
-                    self.is_over = true;
-                    self.requested_sounds.push("crash.wav");
-                }
+                self.check_gameover();
             }
             State::Flashing => {
                 assert!(self.state == State::Controllable || self.state == State::PieceFalling);
@@ -384,6 +381,24 @@ impl Game {
         self.current_y = 0;
         for i in 0..BLOCK_LEN {
             self.next[i] = self.rng.as_mut().unwrap().gen_range(1..=COLOR_COUNT)
+        }
+    }
+
+    pub fn check_gameover(&mut self) {
+        // 最上部の上（フィールドからはみ出た場所）に1個でも宝石が積みあがるか、右から3列目のみはみ出していなくても空いているマスが無くなるとゲームオーバー
+        let mut is_over = false;
+        for x in 0..FIELD_W {
+            if self.field[INVISIBLE_ROW_COUNT - 1][x] != EMPTY {
+                is_over = true;
+                break;
+            }
+        }
+        if self.field[INVISIBLE_ROW_COUNT][FIELD_W - 3] != EMPTY {
+            is_over = true;
+        }
+        if is_over {
+            self.is_over = true;
+            self.requested_sounds.push("crash.wav");
         }
     }
 }
