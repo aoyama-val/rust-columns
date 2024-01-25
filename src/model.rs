@@ -105,25 +105,50 @@ impl Game {
             return;
         }
 
-        if command == Command::Left {
-            if self.current_x >= 1 {
-                self.current_x -= 1;
-                if self.is_collide() {
+        match command {
+            Command::Left => {
+                self.move_block(-1);
+            }
+            Command::Right => {
+                self.move_block(1);
+                if self.current_x + 1 < FIELD_W {
                     self.current_x += 1;
+                    if self.is_collide() {
+                        self.current_x -= 1;
+                    }
                 }
             }
-        } else if command == Command::Right {
-            if self.current_x + 1 < FIELD_W {
-                self.current_x += 1;
-                if self.is_collide() {
-                    self.current_x -= 1;
-                }
+            Command::Down => {
+                self.fall_frame = self.frame;
             }
-        } else if command == Command::Down {
-            self.fall_frame = self.frame;
+            Command::Rotate => {
+                self.rotate();
+            }
+            Command::None => {}
         }
 
         self.fall();
+    }
+
+    pub fn move_block(&mut self, dir: i32) {
+        if dir == -1 && self.current_x == 0 {
+            return;
+        }
+        if dir == 1 && self.current_x == FIELD_W - 1 {
+            return;
+        }
+        self.current_x = (self.current_x as i32 + dir) as usize;
+        if self.is_collide() {
+            self.current_x = (self.current_x as i32 - dir) as usize;
+        }
+    }
+
+    pub fn rotate(&mut self) {
+        let tmp = self.current[BLOCK_LEN - 1];
+        for i in 1..=(BLOCK_LEN - 1) {
+            self.current[i] = self.current[i - 1];
+        }
+        self.current[0] = tmp;
     }
 
     pub fn fall(&mut self) {
