@@ -38,6 +38,19 @@ pub enum Command {
     Down,
 }
 
+impl Command {
+    pub fn from_str(str: &str) -> Command {
+        match str {
+            "None" => Command::None,
+            "Left" => Command::Left,
+            "Right" => Command::Right,
+            "Rotate" => Command::Rotate,
+            "Down" => Command::Down,
+            _ => Command::None,
+        }
+    }
+}
+
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
 pub enum State {
     #[default]
@@ -55,6 +68,7 @@ pub struct Game {
     pub requested_sounds: Vec<&'static str>,
     pub commands: Vec<Command>,    // リプレイデータから読み込んだコマンド
     pub command_log: Option<File>, // コマンドログ
+    pub replay_loaded: bool,
     pub state: State,
     pub field: [[i32; FIELD_W]; FIELD_H],
     pub check_erase_result: [[bool; FIELD_W]; FIELD_H],
@@ -83,9 +97,9 @@ impl Game {
             .duration_since(time::UNIX_EPOCH)
             .expect("SystemTime before UNIX EPOCH!")
             .as_secs();
-        let rng = StdRng::seed_from_u64(timestamp);
+        // let rng = StdRng::seed_from_u64(timestamp);
         println!("random seed = {}", timestamp);
-        // let rng = StdRng::seed_from_u64(0);
+        let rng = StdRng::seed_from_u64(1706226338);
 
         let mut game = Game {
             rng: Some(rng),
@@ -118,12 +132,26 @@ impl Game {
             [4, 5, 1, 3, 2, 2],
         ];
 
+        game.load_replay("replay.dat");
+
         game
     }
 
     pub fn toggle_debug(&mut self) {
         self.is_debug = !self.is_debug;
         println!("is_debug: {}", self.is_debug);
+    }
+
+    pub fn load_replay(&mut self, filename: &str) {
+        if let Some(content) = std::fs::read_to_string(filename).ok() {
+            let mut commands = Vec::new();
+            for (_, line) in content.lines().enumerate() {
+                let command = Command::from_str(line);
+                commands.push(command);
+            }
+            self.replay_loaded = true;
+            self.commands = commands;
+        }
     }
 
     pub fn write_command_log(&mut self, command: Command) {
@@ -138,10 +166,13 @@ impl Game {
     pub fn update(&mut self, mut command: Command) {
         self.frame += 1;
 
-        if self.commands.len() > self.frame as usize {
-            command = self.commands[self.frame as usize];
+        if self.replay_loaded {
+            if self.commands.len() > self.frame as usize {
+                command = self.commands[self.frame as usize];
+            }
+        } else {
+            self.write_command_log(command);
         }
-        self.write_command_log(command);
 
         if self.is_over {
             return;
