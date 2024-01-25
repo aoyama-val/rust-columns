@@ -307,8 +307,8 @@ fn render(
             canvas,
             font,
             format!("COMBO!").to_string(),
-            SCREEN_WIDTH - INFO_WIDTH + 20,
-            310 + 40 * i,
+            (game.current_x + 1) as i32 * CELL_SIZE,
+            (game.current_y - INVISIBLE_ROW_COUNT + 1 + i as usize) as i32 * CELL_SIZE,
             get_block_color(1 + (game.frame + i) % COLOR_COUNT),
             false,
         );
