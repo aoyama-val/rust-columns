@@ -74,6 +74,7 @@ pub fn main() -> Result<(), String> {
     println!("  Right   : Move right");
     println!("  Down    : Drop");
     println!("  Space   : Rotate");
+    println!("  Enter   : Restart when gameover");
 
     'running: loop {
         let started = SystemTime::now();

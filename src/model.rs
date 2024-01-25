@@ -8,6 +8,7 @@ pub const CELL_SIZE: i32 = 40;
 pub const COLOR_COUNT: i32 = 6;
 pub const BLOCK_LEN: usize = 3;
 pub const FALL_WAIT: i32 = 30;
+pub const SPAWN_WAIT: i32 = 30;
 pub const EMPTY: i32 = 0;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -36,6 +37,7 @@ pub struct Game {
     pub erased_jewels: i32,
     pub max_combo: i32,
     pub fall_frame: i32,
+    pub spawn_wait: i32,
 }
 
 impl Game {
@@ -65,6 +67,7 @@ impl Game {
             erased_jewels: 0,
             max_combo: 0,
             fall_frame: FALL_WAIT,
+            spawn_wait: -1,
         };
 
         for i in 0..BLOCK_LEN {
@@ -105,29 +108,43 @@ impl Game {
             return;
         }
 
-        match command {
-            Command::Left => {
-                self.move_block(-1);
-            }
-            Command::Right => {
-                self.move_block(1);
-                if self.current_x + 1 < FIELD_W {
-                    self.current_x += 1;
-                    if self.is_collide() {
-                        self.current_x -= 1;
+        if self.spawn_wait <= 0 {
+            match command {
+                Command::Left => {
+                    self.move_block(-1);
+                }
+                Command::Right => {
+                    self.move_block(1);
+                    if self.current_x + 1 < FIELD_W {
+                        self.current_x += 1;
+                        if self.is_collide() {
+                            self.current_x -= 1;
+                        }
                     }
                 }
+                Command::Down => {
+                    self.fall_frame = self.frame;
+                }
+                Command::Rotate => {
+                    self.rotate();
+                }
+                Command::None => {}
             }
-            Command::Down => {
-                self.fall_frame = self.frame;
-            }
-            Command::Rotate => {
-                self.rotate();
-            }
-            Command::None => {}
+
+            self.fall();
         }
 
-        self.fall();
+        if self.spawn_wait > 0 {
+            self.spawn_wait -= 1;
+        }
+        if self.spawn_wait == 0 {
+            self.spawn();
+            if self.is_collide() {
+                self.is_over = true;
+                self.requested_sounds.push("crash.wav");
+            }
+            self.spawn_wait = -1;
+        }
     }
 
     pub fn move_block(&mut self, dir: i32) {
@@ -157,7 +174,7 @@ impl Game {
             if self.is_collide() {
                 self.current_y -= 1;
                 self.settle();
-                self.spawn();
+                self.spawn_wait = SPAWN_WAIT;
             }
             self.fall_frame = self.frame + FALL_WAIT;
         }
