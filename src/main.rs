@@ -2,9 +2,8 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mixer;
 use sdl2::pixels::Color;
-use sdl2::rect::{Point, Rect};
+use sdl2::rect::Rect;
 use sdl2::render::{BlendMode, Canvas, Texture, TextureCreator};
-use sdl2::sys::KeyCode;
 use sdl2::ttf::Sdl2TtfContext;
 use sdl2::video::{Window, WindowContext};
 use std::collections::HashMap;
@@ -13,8 +12,10 @@ use std::time::{Duration, SystemTime};
 mod model;
 use crate::model::*;
 
-pub const SCREEN_WIDTH: i32 = WORLD_W as i32;
-pub const SCREEN_HEIGHT: i32 = WORLD_H as i32;
+pub const WINDOW_TITLE: &str = "rust-columns";
+pub const SCREEN_WIDTH: i32 = FIELD_W as i32 * CELL_SIZE + INFO_WIDTH;
+pub const SCREEN_HEIGHT: i32 = FIELD_H as i32 * CELL_SIZE;
+pub const INFO_WIDTH: i32 = 190;
 
 struct Image<'a> {
     texture: Texture<'a>,
@@ -46,7 +47,7 @@ pub fn main() -> Result<(), String> {
 
     let video_subsystem = sdl_context.video()?;
     let window = video_subsystem
-        .window("rust-blackjack", SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32)
+        .window(WINDOW_TITLE, SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32)
         .position_centered()
         .opengl()
         .build()
@@ -69,12 +70,16 @@ pub fn main() -> Result<(), String> {
     let mut game = Game::new();
 
     println!("Keys:");
-    println!("  Space       : Restart when gameover");
+    println!("  Left    : Move left");
+    println!("  Right   : Move right");
+    println!("  Down    : Drop");
+    println!("  Space   : Rotate");
 
     'running: loop {
         let started = SystemTime::now();
 
         let mut command = Command::None;
+        let mut is_keydown = false;
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => break 'running,
@@ -82,22 +87,33 @@ pub fn main() -> Result<(), String> {
                     keycode: Some(code),
                     ..
                 } => {
+                    is_keydown = true;
                     if code == Keycode::Escape {
                         break 'running;
                     }
                     match code {
-                        Keycode::Space => {
+                        Keycode::Return => {
                             if game.is_over {
                                 game = Game::new();
                             }
                         }
+                        Keycode::F1 => {
+                            game.toggle_debug();
+                            println!("{:?}", game);
+                        }
+                        Keycode::Left => command = Command::Left,
+                        Keycode::Right => command = Command::Right,
+                        Keycode::Down => command = Command::Down,
+                        Keycode::Space => command = Command::Rotate,
                         _ => {}
                     };
                 }
                 _ => {}
             }
         }
-        game.update(command);
+        if !game.is_debug || is_keydown {
+            game.update(command);
+        }
         render(&mut canvas, &game, &mut resources)?;
 
         play_sounds(&mut game, &resources);
@@ -168,7 +184,7 @@ fn load_resources<'a>(
         &mut resources,
         &ttf_context,
         "./resources/font/boxfont2.ttf",
-        32,
+        24,
         "boxfont",
     );
 
@@ -193,23 +209,86 @@ fn render(
     game: &Game,
     resources: &mut Resources,
 ) -> Result<(), String> {
-    canvas.set_draw_color(Color::RGB(0, 0, 0));
+    canvas.set_draw_color(Color::RGB(32, 32, 32));
     canvas.clear();
 
     let font = resources.fonts.get_mut("boxfont").unwrap();
 
     canvas.set_draw_color(Color::RGB(255, 128, 128));
-    canvas.fill_rect(Rect::new(100, 100, 20, 20))?;
 
+    // render field
+    for y in 0..FIELD_H {
+        for x in 0..FIELD_W {
+            if game.field[y][x] != 0 {
+                let color = get_block_color(game.field[y][x]);
+                canvas.set_draw_color(color);
+                canvas.fill_rect(Rect::new(
+                    (x as i32) * (CELL_SIZE as i32),
+                    (y as i32) * (CELL_SIZE as i32),
+                    CELL_SIZE as u32,
+                    CELL_SIZE as u32,
+                ))?;
+            }
+        }
+    }
+
+    // render info
+    canvas.set_draw_color(Color::RGB(0, 0, 0));
+    canvas.fill_rect(Rect::new(
+        SCREEN_WIDTH - INFO_WIDTH,
+        0,
+        INFO_WIDTH as u32,
+        SCREEN_HEIGHT as u32,
+    ))?;
+
+    // render current block
+    for i in 0..BLOCK_LEN {
+        let color = get_block_color(game.current[i]);
+        canvas.set_draw_color(color);
+        canvas.fill_rect(Rect::new(
+            (game.current_x as i32) * (CELL_SIZE as i32),
+            ((game.current_y + i) as i32) * (CELL_SIZE as i32),
+            CELL_SIZE as u32,
+            CELL_SIZE as u32,
+        ))?;
+    }
+
+    // render next block
+    for i in 0..BLOCK_LEN {
+        let color = get_block_color(game.next[i]);
+        canvas.set_draw_color(color);
+        canvas.fill_rect(Rect::new(
+            (FIELD_W as i32 + 1) * (CELL_SIZE as i32),
+            (i as i32) * (CELL_SIZE as i32),
+            CELL_SIZE as u32,
+            CELL_SIZE as u32,
+        ))?;
+    }
+
+    let font_color = Color::RGB(224, 224, 224);
     render_font(
         canvas,
         font,
-        "HOGE".to_string(),
-        SCREEN_WIDTH / 2,
-        SCREEN_HEIGHT / 2,
-        Color::RGBA(128, 128, 255, 255),
-        true,
+        format!("JEWELS {:6}", game.erased_jewels).to_string(),
+        SCREEN_WIDTH - INFO_WIDTH + 20,
+        230,
+        font_color,
+        false,
     );
+    render_font(
+        canvas,
+        font,
+        format!("MAX COMBO {:3}", game.max_combo).to_string(),
+        SCREEN_WIDTH - INFO_WIDTH + 20,
+        270,
+        font_color,
+        false,
+    );
+
+    if game.is_over {
+        canvas.set_draw_color(Color::RGBA(255, 0, 0, 128));
+        canvas.fill_rect(Rect::new(0, 0, SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32))?;
+    }
 
     canvas.present();
 
@@ -256,4 +335,16 @@ fn play_sounds(game: &mut Game, resources: &Resources) {
             .expect("cannot play sound");
     }
     game.requested_sounds = Vec::new();
+}
+
+fn get_block_color(color_num: i32) -> Color {
+    match color_num {
+        1 => Color::RGB(255, 128, 128),
+        2 => Color::RGB(128, 255, 128),
+        3 => Color::RGB(128, 128, 255),
+        4 => Color::RGB(255, 255, 128),
+        5 => Color::RGB(128, 255, 255),
+        6 => Color::RGB(255, 128, 255),
+        _ => panic!(),
+    }
 }
