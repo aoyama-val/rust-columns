@@ -267,7 +267,7 @@ fn render(
 
     // render next block
     for i in 0..BLOCK_LEN {
-        let color = get_block_color(game.next[i]);
+        let color = get_block_color(game.next_to_display[i]);
         canvas.set_draw_color(color);
         canvas.fill_rect(Rect::new(
             (FIELD_W as i32 + 1) * (CELL_SIZE as i32),

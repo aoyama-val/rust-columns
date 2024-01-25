@@ -62,6 +62,7 @@ pub struct Game {
     pub current_y: usize, // 3個つらなっている一番上のピースの座標
     pub current: [i32; BLOCK_LEN],
     pub next: [i32; BLOCK_LEN],
+    pub next_to_display: [i32; BLOCK_LEN],
     pub erased_one_time: i32, // 連鎖も含めていっぺんに消した個数
     pub max_erased_at_one_time: i32,
     pub combo: i32, // 現在進行中のコンボ数
@@ -92,6 +93,7 @@ impl Game {
         };
 
         game.set_state(State::Controllable);
+        game.next_to_display = game.next;
 
         game.current = [5, 5, 1];
         game.field = [
@@ -256,6 +258,9 @@ impl Game {
             } else {
                 self.set_state(State::Controllable);
             }
+        }
+        if self.current_y == INVISIBLE_ROW_COUNT {
+            self.next_to_display = self.next;
         }
         self.fall_wait = FALL_WAIT;
     }
