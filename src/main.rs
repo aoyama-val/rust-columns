@@ -290,7 +290,7 @@ fn render(
     render_font(
         canvas,
         font,
-        format!("MAX ERASE {:3}", game.max_erase).to_string(),
+        format!("MAX ERASE {:3}", game.max_erased_at_one_time).to_string(),
         SCREEN_WIDTH - INFO_WIDTH + 20,
         270,
         font_color,

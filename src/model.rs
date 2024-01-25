@@ -43,12 +43,12 @@ pub struct Game {
     pub field: [[i32; FIELD_W]; FIELD_H],
     pub check_erase_result: [[bool; FIELD_W]; FIELD_H],
     pub current_x: usize,
-    pub current_y: usize,
+    pub current_y: usize, // 3個つらなっている一番上のピースの座標
     pub current: [i32; BLOCK_LEN],
     pub next: [i32; BLOCK_LEN],
-    pub erase: i32,
-    pub max_erase: i32,
-    pub combo: i32,
+    pub erased_one_time: i32, // 連鎖も含めていっぺんに消した個数
+    pub max_erased_at_one_time: i32,
+    pub combo: i32, // 現在進行中のコンボ数
     pub total_erased: i32,
     pub max_combo: i32,
     pub fall_wait: i32,
@@ -83,8 +83,8 @@ impl Game {
             current_x: 0,
             current_y: 0,
             next: [0; BLOCK_LEN],
-            erase: 0,
-            max_erase: 0,
+            erased_one_time: 0,
+            max_erased_at_one_time: 0,
             combo: -1,
             total_erased: 0,
             max_combo: 0,
@@ -145,53 +145,56 @@ impl Game {
             return;
         }
 
-        if self.state == State::Controllable {
-            self.fall();
+        match self.state {
+            State::Controllable => {
+                self.fall();
 
-            match command {
-                Command::Left => {
-                    self.move_block(-1);
+                match command {
+                    Command::Left => {
+                        self.move_block(-1);
+                    }
+                    Command::Right => {
+                        self.move_block(1);
+                    }
+                    Command::Down => {
+                        self.fall_wait = 0;
+                    }
+                    Command::Rotate => {
+                        self.rotate();
+                    }
+                    Command::None => {}
                 }
-                Command::Right => {
-                    self.move_block(1);
+            }
+            State::Flashing => {
+                if self.flashing_wait > 0 {
+                    self.flashing_wait -= 1;
                 }
-                Command::Down => {
-                    self.fall_wait = 0;
+                if self.flashing_wait == 0 {
+                    self.actually_erase();
+                    self.set_state(State::PieceFalling);
                 }
-                Command::Rotate => {
-                    self.rotate();
+            }
+            State::PieceFalling => {
+                if self.piece_fall_wait > 0 {
+                    self.piece_fall_wait -= 1;
                 }
-                Command::None => {}
-            }
-        } else if self.state == State::Flashing {
-            if self.flashing_wait > 0 {
-                self.flashing_wait -= 1;
-            }
-            if self.flashing_wait == 0 {
-                self.actually_erase();
-                self.set_state(State::PieceFalling);
-            }
-        } else if self.state == State::PieceFalling {
-            if self.piece_fall_wait > 0 {
-                self.piece_fall_wait -= 1;
-            }
-            if self.piece_fall_wait == 0 {
-                self.piece_fall();
-                if self.check_erase() {
-                    self.set_state(State::Flashing);
-                } else {
-                    self.set_state(State::Controllable);
+                if self.piece_fall_wait == 0 {
+                    self.piece_fall();
+                    if self.check_erase() {
+                        self.set_state(State::Flashing);
+                    } else {
+                        self.set_state(State::Controllable);
+                    }
                 }
             }
         }
     }
 
     pub fn set_state(&mut self, new_state: State) {
-        println!("state: {:?} -> {:?}", self.state, new_state);
         match new_state {
             State::Controllable => {
                 assert!(self.state == State::Controllable || self.state == State::PieceFalling);
-                self.erase = 0;
+                self.erased_one_time = 0;
                 self.combo = -1;
                 self.spawn();
                 if self.is_collide() {
@@ -334,9 +337,9 @@ impl Game {
         }
         if erased_count > 0 {
             self.total_erased += erased_count;
-            self.erase += erased_count;
-            if self.max_erase < self.erase {
-                self.max_erase = self.erase;
+            self.erased_one_time += erased_count;
+            if self.max_erased_at_one_time < self.erased_one_time {
+                self.max_erased_at_one_time = self.erased_one_time;
             }
             if self.max_combo < self.combo {
                 self.max_combo = self.combo;
@@ -354,7 +357,6 @@ impl Game {
     }
 
     pub fn spawn(&mut self) {
-        println!("Spawn!");
         self.current = self.next;
         self.current_x = FIELD_W / 2;
         self.current_y = 0;
