@@ -46,6 +46,7 @@ pub struct Game {
     pub current_y: usize,
     pub current: [i32; BLOCK_LEN],
     pub next: [i32; BLOCK_LEN],
+    pub combo: i32,
     pub erased_jewels: i32,
     pub max_combo: i32,
     pub fall_wait: i32,
@@ -80,6 +81,7 @@ impl Game {
             current_x: 0,
             current_y: 0,
             next: [0; BLOCK_LEN],
+            combo: -1,
             erased_jewels: 0,
             max_combo: 0,
             fall_wait: FALL_WAIT,
@@ -191,6 +193,7 @@ impl Game {
         match new_state {
             State::Controllable => {
                 assert!(self.state == State::Controllable || self.state == State::PieceFalling);
+                self.combo = -1;
                 self.spawn();
                 if self.is_collide() {
                     self.is_over = true;
@@ -199,6 +202,7 @@ impl Game {
             }
             State::Flashing => {
                 assert!(self.state == State::Controllable || self.state == State::PieceFalling);
+                self.combo += 1;
                 self.flashing_wait = FLASHING_WAIT;
             }
             State::PieceFalling => {
@@ -319,16 +323,20 @@ impl Game {
     }
 
     pub fn actually_erase(&mut self) {
-        let mut erased = false;
+        let mut erased_count: i32 = 0;
         for y in 0..FIELD_H {
             for x in 0..FIELD_W {
                 if self.check_erase_result[y][x] {
                     self.field[y][x] = EMPTY;
-                    erased = true;
+                    erased_count += 1;
                 }
             }
         }
-        if erased {
+        if erased_count > 0 {
+            self.erased_jewels += erased_count;
+            if self.max_combo < self.combo {
+                self.max_combo = self.combo;
+            }
             self.requested_sounds.push("erase.wav");
         }
     }
