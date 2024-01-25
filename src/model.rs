@@ -154,12 +154,6 @@ impl Game {
                 }
                 Command::Right => {
                     self.move_block(1);
-                    if self.current_x + 1 < FIELD_W {
-                        self.current_x += 1;
-                        if self.is_collide() {
-                            self.current_x -= 1;
-                        }
-                    }
                 }
                 Command::Down => {
                     self.fall_wait = 0;
