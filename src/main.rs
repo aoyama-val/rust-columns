@@ -218,7 +218,7 @@ fn render(
     canvas.set_draw_color(Color::RGB(255, 128, 128));
 
     // render field
-    for y in 0..FIELD_H {
+    for y in INVISIBLE_ROW_COUNT..FIELD_H {
         for x in 0..FIELD_W {
             if game.field[y][x] != EMPTY {
                 let color;
@@ -258,7 +258,7 @@ fn render(
             canvas.set_draw_color(color);
             canvas.fill_rect(Rect::new(
                 (game.current_x as i32) * (CELL_SIZE as i32),
-                ((game.current_y + i) as i32) * (CELL_SIZE as i32),
+                ((game.current_y + i) as i32 - INVISIBLE_ROW_COUNT as i32) * (CELL_SIZE as i32),
                 CELL_SIZE as u32,
                 CELL_SIZE as u32,
             ))?;

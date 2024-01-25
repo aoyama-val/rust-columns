@@ -3,7 +3,8 @@ use std::{fs::File, io::Write, time};
 
 pub const FPS: i32 = 30;
 pub const FIELD_W: usize = 6;
-pub const FIELD_H: usize = 13;
+pub const FIELD_H: usize = 15;
+pub const INVISIBLE_ROW_COUNT: usize = 3;
 pub const CELL_SIZE: i32 = 40;
 pub const COLOR_COUNT: i32 = 6;
 pub const BLOCK_LEN: usize = 3; // 1ブロックのピース数
@@ -92,7 +93,7 @@ impl Game {
         }
         game.spawn();
 
-        game.current = [2, 1, 2];
+        game.current = [5, 5, 1];
         game.field = [
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
@@ -102,11 +103,13 @@ impl Game {
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 2, 0, 0],
-            [0, 0, 0, 2, 0, 0],
-            [0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 5, 0, 2],
+            [0, 0, 0, 2, 0, 3],
+            [0, 0, 0, 2, 0, 3],
             [0, 0, 1, 1, 0, 1],
+            [0, 0, 4, 2, 6, 6],
+            [0, 0, 4, 5, 6, 6],
+            [0, 0, 3, 5, 1, 4],
         ];
 
         game
@@ -367,12 +370,16 @@ mod tests {
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
             [0, 0, 1, 1, 1, 1],
         ];
         game.check_erase();
         assert_eq!(
             game.check_erase_result,
             [
+                [false, false, false, false, false, false],
+                [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
@@ -403,6 +410,8 @@ mod tests {
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 1],
             [0, 0, 0, 0, 0, 1],
             [0, 0, 0, 0, 0, 1],
@@ -413,6 +422,8 @@ mod tests {
         assert_eq!(
             game.check_erase_result,
             [
+                [false, false, false, false, false, false],
+                [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
@@ -443,6 +454,8 @@ mod tests {
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 1, 0, 0],
             [0, 0, 0, 0, 1, 0],
             [0, 0, 0, 0, 0, 1],
@@ -453,6 +466,8 @@ mod tests {
         assert_eq!(
             game.check_erase_result,
             [
+                [false, false, false, false, false, false],
+                [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
@@ -484,6 +499,8 @@ mod tests {
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
             [0, 0, 1, 0, 0, 0],
             [0, 0, 0, 1, 0, 0],
             [0, 0, 0, 0, 1, 0],
@@ -493,6 +510,8 @@ mod tests {
         assert_eq!(
             game.check_erase_result,
             [
+                [false, false, false, false, false, false],
+                [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
