@@ -3,7 +3,7 @@ use std::{fs::File, io::Write, time};
 
 pub const FPS: i32 = 30;
 pub const FIELD_W: usize = 6;
-pub const FIELD_H: usize = 15;
+pub const FIELD_H: usize = 16;
 pub const INVISIBLE_ROW_COUNT: usize = 3;
 pub const CELL_SIZE: i32 = 40;
 pub const COLOR_COUNT: i32 = 6;
@@ -95,6 +95,7 @@ impl Game {
 
         game.current = [5, 5, 1];
         game.field = [
+            [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
@@ -377,12 +378,14 @@ mod tests {
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
             [0, 0, 1, 1, 1, 1],
         ];
         game.check_erase();
         assert_eq!(
             game.check_erase_result,
             [
+                [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
@@ -417,6 +420,7 @@ mod tests {
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 1],
             [0, 0, 0, 0, 0, 1],
             [0, 0, 0, 0, 0, 1],
@@ -427,6 +431,7 @@ mod tests {
         assert_eq!(
             game.check_erase_result,
             [
+                [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
@@ -461,6 +466,7 @@ mod tests {
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 1, 0, 0],
             [0, 0, 0, 0, 1, 0],
             [0, 0, 0, 0, 0, 1],
@@ -471,6 +477,7 @@ mod tests {
         assert_eq!(
             game.check_erase_result,
             [
+                [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
@@ -506,6 +513,7 @@ mod tests {
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
             [0, 0, 1, 0, 0, 0],
             [0, 0, 0, 1, 0, 0],
             [0, 0, 0, 0, 1, 0],
@@ -515,6 +523,7 @@ mod tests {
         assert_eq!(
             game.check_erase_result,
             [
+                [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
@@ -548,6 +557,7 @@ mod tests {
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 1, 0],
             [0, 0, 0, 1, 0, 0],
             [0, 0, 1, 0, 0, 0],
@@ -559,6 +569,7 @@ mod tests {
         assert_eq!(
             game.check_erase_result,
             [
+                [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
                 [false, false, false, false, false, false],
