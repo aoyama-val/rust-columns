@@ -38,6 +38,7 @@ pub struct Game {
     pub max_combo: i32,
     pub fall_frame: i32,
     pub spawn_wait: i32,
+    pub controllable: bool,
 }
 
 impl Game {
@@ -68,18 +69,13 @@ impl Game {
             max_combo: 0,
             fall_frame: FALL_WAIT,
             spawn_wait: -1,
+            controllable: true,
         };
 
         for i in 0..BLOCK_LEN {
             game.next[i] = game.rng.gen_range(1..=COLOR_COUNT)
         }
         game.spawn();
-
-        // for y in 0..FIELD_H {
-        //     for x in 0..FIELD_W {
-        //         game.field[y][x] = game.rng.gen_range(1..=COLOR_COUNT);
-        //     }
-        // }
 
         game
     }
@@ -108,7 +104,7 @@ impl Game {
             return;
         }
 
-        if self.spawn_wait <= 0 {
+        if self.controllable {
             match command {
                 Command::Left => {
                     self.move_block(-1);
@@ -132,18 +128,21 @@ impl Game {
             }
 
             self.fall();
-        }
-
-        if self.spawn_wait > 0 {
-            self.spawn_wait -= 1;
-        }
-        if self.spawn_wait == 0 {
-            self.spawn();
-            if self.is_collide() {
-                self.is_over = true;
-                self.requested_sounds.push("crash.wav");
+        } else {
+            if self.spawn_wait > 0 {
+                self.spawn_wait -= 1;
             }
-            self.spawn_wait = -1;
+            if self.spawn_wait == 0 {
+                self.spawn();
+                if self.is_collide() {
+                    self.is_over = true;
+                    self.requested_sounds.push("crash.wav");
+                }
+                self.spawn_wait = -1;
+                // 足場がなくなったピースを落とす（アニメーション）
+                // そろったピースを消す（アニメーション）
+                self.controllable = true;
+            }
         }
     }
 
@@ -175,6 +174,7 @@ impl Game {
                 self.current_y -= 1;
                 self.settle();
                 self.spawn_wait = SPAWN_WAIT;
+                self.controllable = false;
             }
             self.fall_frame = self.frame + FALL_WAIT;
         }
