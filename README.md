@@ -2,6 +2,9 @@
 
 Columns implemented in Rust.
 
+https://github.com/aoyama-val/rust-columns/assets/13144822/670195f6-6c02-436f-8ad5-3c1289041023
+
+
 ## Requirements
 
 - SDL2
