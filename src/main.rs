@@ -308,7 +308,7 @@ fn render(
             font,
             format!("COMBO!").to_string(),
             (game.current_x + 1) as i32 * CELL_SIZE,
-            (game.current_y - INVISIBLE_ROW_COUNT + 1 + i as usize) as i32 * CELL_SIZE,
+            (game.current_y as i32 - INVISIBLE_ROW_COUNT as i32 + 1 + i) as i32 * CELL_SIZE,
             get_block_color(1 + (game.frame + i) % COLOR_COUNT),
             false,
         );

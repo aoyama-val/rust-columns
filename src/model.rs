@@ -97,9 +97,9 @@ impl Game {
             .duration_since(time::UNIX_EPOCH)
             .expect("SystemTime before UNIX EPOCH!")
             .as_secs();
-        // let rng = StdRng::seed_from_u64(timestamp);
+        let rng = StdRng::seed_from_u64(timestamp);
         println!("random seed = {}", timestamp);
-        let rng = StdRng::seed_from_u64(1706226338);
+        //let rng = StdRng::seed_from_u64(1706226338);
 
         let mut game = Game {
             rng: Some(rng),
@@ -109,28 +109,30 @@ impl Game {
         };
 
         game.set_state(State::Controllable);
+        game.spawn();
+        game.spawn();
         game.next_to_display = game.next;
 
-        game.current = [5, 5, 4];
-        game.next = [3, 1, 4];
-        game.field = [
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 6, 0, 0],
-            [0, 0, 0, 5, 0, 2],
-            [0, 0, 0, 2, 0, 3],
-            [0, 0, 0, 2, 0, 3],
-            [0, 0, 1, 1, 0, 1],
-            [0, 0, 4, 2, 6, 6],
-            [0, 0, 4, 5, 3, 1],
-            [4, 0, 6, 5, 6, 4],
-            [4, 5, 1, 3, 2, 2],
-        ];
+        //game.current = [5, 5, 4];
+        //game.next = [3, 1, 4];
+        //game.field = [
+        //    [0, 0, 0, 0, 0, 0],
+        //    [0, 0, 0, 0, 0, 0],
+        //    [0, 0, 0, 0, 0, 0],
+        //    [0, 0, 0, 0, 0, 0],
+        //    [0, 0, 0, 0, 0, 0],
+        //    [0, 0, 0, 0, 0, 0],
+        //    [0, 0, 0, 0, 0, 0],
+        //    [0, 0, 0, 6, 0, 0],
+        //    [0, 0, 0, 5, 0, 2],
+        //    [0, 0, 0, 2, 0, 3],
+        //    [0, 0, 0, 2, 0, 3],
+        //    [0, 0, 1, 1, 0, 1],
+        //    [0, 0, 4, 2, 6, 6],
+        //    [0, 0, 4, 5, 3, 1],
+        //    [4, 0, 6, 5, 6, 4],
+        //    [4, 5, 1, 3, 2, 2],
+        //];
 
         game.load_replay("replay.dat");
 

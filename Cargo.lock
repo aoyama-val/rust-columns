@@ -74,7 +74,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-quarth"
+name = "rust-columns"
 version = "0.1.0"
 dependencies = [
  "rand",
